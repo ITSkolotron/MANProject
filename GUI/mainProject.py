@@ -119,7 +119,19 @@ def Start ():
         twilio_account_sid = 'ACdd6914d657da2353b514f0b1fe0d7757'
         twilio_auth_token = '48d10574c18f64bc1cb07fe29615b890'
         twilio_phone_number = '+18043966595'
-        destination_phone_number = '+380994002620'
+        #destination_phone_number = '+380994002620'
+        f = open("number.txt", "r")
+        if os.stat("number.txt").st_size != 0:
+            destination_phone_number = f.read()
+            ui.lineEdit_3.setEnabled(False)
+        else:
+            f = open("number.txt", "w")
+            destination_phone_number = ui.lineEdit_3.text()
+            f.write(destination_phone_number)
+            ui.lineEdit_3.setEnabled(True)
+        f.close()
+        print(destination_phone_number)
+
         client = Client(twilio_account_sid, twilio_auth_token)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -129,7 +141,21 @@ def Start ():
         id = 0
 
         # names related to ids: example ==> Marcelo: id=1,  etc
-        names = ['None', 'Illia']
+        names = ['None']
+        f = open("name.txt", "r")
+        if os.stat("name.txt").st_size != 0:
+            name = f.read()
+            ui.lineEdit_2.setEnabled(False)
+            names.append(name)
+            f.close()
+        else:
+            f = open("name.txt", "w")
+            name = ui.lineEdit_2.text()
+            f.write(name)
+            ui.lineEdit_2.setEnabled(True)
+            names.append(name)
+        f.close()
+        print(name)
 
         # Initialize and start realtime video capture
         cam = cv2.VideoCapture(0)
@@ -224,15 +250,15 @@ def Delete ():
     f = open("data.txt","w")
     f.write("0")
     f.close()
+    f = open("name.txt", "w")
+    f.write("")
+    f.close()
+    f = open("number.txt", "w")
+    f.write("")
+    f.close()
     ui.lineEdit.setText("Cache was deleted!")
-
-def Add():
-    pass
-
-
 
 ui.pushButton_4.clicked.connect(Scan)
 ui.pushButton_2.clicked.connect(Delete)
 ui.pushButton.clicked.connect(Start)
-ui.pushButton_3.clicked.connect(Add)
 sys.exit(app.exec_())
