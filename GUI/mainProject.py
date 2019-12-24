@@ -139,20 +139,30 @@ def Start ():
         identification_count = 0
         # iniciate id counter
         id = 0
-
+        empstr = ""
         # names related to ids: example ==> Marcelo: id=1,  etc
         names = ['None']
         f = open("name.txt", "r")
         if os.stat("name.txt").st_size != 0:
             name = f.read()
-            ui.lineEdit_2.setEnabled(False)
-            names.append(name)
+            f.close()
+            othername = ui.lineEdit_2.text()
+            print(" this -->",othername)
+            if othername != name and othername != empstr:
+                f = open("name.txt","w")
+                f.write("")
+                f.write(othername)
+                names.append(othername)
+            else:
+                names.append(name)
+            #ui.lineEdit_2.setEnabled(False)
+
             f.close()
         else:
             f = open("name.txt", "w")
             name = ui.lineEdit_2.text()
             f.write(name)
-            ui.lineEdit_2.setEnabled(True)
+            #ui.lineEdit_2.setEnabled(True)
             names.append(name)
         f.close()
         print(name)
