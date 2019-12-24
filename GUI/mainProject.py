@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from Project import Ui_Form
+from Project import Ui_Project
 import cv2
 import numpy as np
 from PIL import Image
@@ -13,7 +13,7 @@ import socket
 
 app = QtWidgets.QApplication(sys.argv)
 Form = QtWidgets.QWidget()
-ui = Ui_Form()
+ui = Ui_Project()
 ui.setupUi(Form)
 Form.show()
 def Scan ():
@@ -21,6 +21,14 @@ def Scan ():
         cam.set(3, 640)  # set video width
         cam.set(4, 480)  # set video height
 
+        folder1 = 'trainer'
+        for the_file1 in os.listdir(folder1):
+            file_path1 = os.path.join(folder1, the_file1)
+            try:
+                if os.path.isfile(file_path1):
+                    os.unlink(file_path1)
+            except Exception as e:
+                print(e)
         face_detector = cv2.CascadeClassifier(
             r'C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_alt.xml')
 
@@ -30,8 +38,12 @@ def Scan ():
 
         ui.lineEdit.setText("[INFO] Initializing face capture. Look the camera and wait ...")
         # Initialize individual sampling face count
-        count = 0
-
+        f = open("data.txt", "r",encoding='cp1251')
+        count = f.read()
+        count = int(count)
+        countprog = count
+        f.close()
+        print("1")
         while (True):
             ret, img = cam.read()
             # flip video image vertically
@@ -40,65 +52,65 @@ def Scan ():
 
             for (x, y, w, h) in faces:
                 cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                count += 1
+                countprog += 1
 
                 # Save the captured image into the datasets folder
-                cv2.imwrite(r"C:\Users\1\Desktop\All_project_materials\dataset/User." + str(face_id) + '.' + str(
-                    count) + ".jpg", gray[y:y + h, x:x + w])
+                cv2.imwrite("dataset/User." + str(face_id) + '.' + str(
+                    countprog) + ".jpg", gray[y:y + h, x:x + w])
 
                 cv2.imshow('image', img)
 
             k = cv2.waitKey(100) & 0xff  # Press 'ESC' for exiting video
             if k == 27:
                 break
-            elif count >= 150:  # Take 30 face sample and stop video
+            elif countprog >= count + 30:  # Take 30 face sample and stop video
                 break
-
+            print("2")
         # Do a bit of cleanup
         ui.lineEdit.setText("[INFO] Exiting Program and cleanup stuff")
         cam.release()
         cv2.destroyAllWindows()
+        path = 'dataset'
 
-def Configure ():
-    # Path for face image database
-    path = r'C:\Users\1\Desktop\All_project_materials\dataset'
+        f = open("data.txt", "w")
+        countprog = str(countprog)
+        f.write(countprog)
+        f.close()
+        recognizer = cv2.face.LBPHFaceRecognizer_create()
+        detector = cv2.CascadeClassifier(
+            r"C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_default.xml")
 
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
-    detector = cv2.CascadeClassifier(
-        r"C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_default.xml")
+        # function to get the images and label data
+        def getImagesAndLabels(path):
+            imagePaths = [os.path.join(path, f) for f in os.listdir(path)]
+            faceSamples = []
+            ids = []
+            for imagePath in imagePaths:
+                PIL_img = Image.open(imagePath).convert('L')  # convert it to grayscale
+                img_numpy = np.array(PIL_img, 'uint8')
+                id = int(os.path.split(imagePath)[-1].split(".")[1])
+                faces = detector.detectMultiScale(img_numpy)
+                for (x, y, w, h) in faces:
+                    faceSamples.append(img_numpy[y:y + h, x:x + w])
+                    ids.append(id)
+            return faceSamples, ids
 
-    # function to get the images and label data
-    def getImagesAndLabels(path):
-        imagePaths = [os.path.join(path, f) for f in os.listdir(path)]
-        faceSamples = []
-        ids = []
-        for imagePath in imagePaths:
-            PIL_img = Image.open(imagePath).convert('L')  # convert it to grayscale
-            img_numpy = np.array(PIL_img, 'uint8')
-            id = int(os.path.split(imagePath)[-1].split(".")[1])
-            faces = detector.detectMultiScale(img_numpy)
-            for (x, y, w, h) in faces:
-                faceSamples.append(img_numpy[y:y + h, x:x + w])
-                ids.append(id)
-        return faceSamples, ids
+        ui.lineEdit.setText("[INFO] Training faces. It will take a few seconds. Wait ...")
+        faces, ids = getImagesAndLabels(path)
+        recognizer.train(faces, np.array(ids))
 
-    ui.lineEdit.setText("[INFO] Training faces. It will take a few seconds. Wait ...")
-    faces, ids = getImagesAndLabels(path)
-    recognizer.train(faces, np.array(ids))
+        # Save the model into trainer/trainer.yml
 
-    # Save the model into trainer/trainer.yml
+        recognizer.save('trainer/trainer.yml')  # recognizer.save() worked on Mac, but not on Pi
 
-    recognizer.save(
-        r'C:\Users\1\Desktop\All_project_materials\trainer/trainer.yml')  # recognizer.save() worked on Mac, but not on Pi
-
-    # Print the numer of faces trained and end program
-    ui.lineEdit.setText("[INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
+        # Print the numer of faces trained and end program
+        ui.lineEdit.setText("[INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
 
 def Start ():
     try:
         ui.lineEdit.setText("Program starts working")
         recognizer = cv2.face.LBPHFaceRecognizer_create()
-        recognizer.read(r'C:\Users\1\Desktop\All_project_materials\trainer/trainer.yml')
+        recognizer.read('trainer/trainer.yml')
         cascadePath = r"C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_default.xml"
         faceCascade = cv2.CascadeClassifier(cascadePath)
         # Twilio config
@@ -146,7 +158,7 @@ def Start ():
                 id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
-                if (confidence <= 45 and confidence > 20):  #
+                if (confidence <= 55 and confidence > 20):  #
                     id = names[id]
                     confidence = "  {0}%".format(round(100 - confidence))
                     print(confidence)
@@ -193,7 +205,7 @@ def Start ():
         ui.lineEdit.setText("Files dataset and trainer must be full, not empty")
 
 def Delete ():
-    folder = r'C:\Users\1\Desktop\All_project_materials\dataset'
+    folder = 'dataset'
     for the_file in os.listdir(folder):
         file_path = os.path.join(folder, the_file)
         try:
@@ -201,7 +213,7 @@ def Delete ():
                 os.unlink(file_path)
         except Exception as e:
             print(e)
-    folder1 = r'C:\Users\1\Desktop\All_project_materials\trainer'
+    folder1 = 'trainer'
     for the_file1 in os.listdir(folder1):
         file_path1 = os.path.join(folder1, the_file1)
         try:
@@ -209,9 +221,18 @@ def Delete ():
                 os.unlink(file_path1)
         except Exception as e:
             print(e)
+    f = open("data.txt","w")
+    f.write("0")
+    f.close()
     ui.lineEdit.setText("Cache was deleted!")
+
+def Add():
+    pass
+
+
+
 ui.pushButton_4.clicked.connect(Scan)
 ui.pushButton_2.clicked.connect(Delete)
 ui.pushButton.clicked.connect(Start)
-ui.pushButton_3.clicked.connect(Configure)
+ui.pushButton_3.clicked.connect(Add)
 sys.exit(app.exec_())
