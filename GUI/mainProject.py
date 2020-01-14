@@ -10,13 +10,14 @@ import time
 from twilio.rest import Client
 import shutil
 import socket
+import re
 
 app = QtWidgets.QApplication(sys.argv)
 Form = QtWidgets.QWidget()
 ui = Ui_Project()
 ui.setupUi(Form)
+global destination_phone_number
 Form.show()
-
 def Scan ():
         cam = cv2.VideoCapture(0)
         cam.set(3, 640)  # set video width
@@ -30,8 +31,7 @@ def Scan ():
                     os.unlink(file_path1)
             except Exception as e:
                 print(e)
-        face_detector = cv2.CascadeClassifier(
-            r'C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_alt.xml')
+        face_detector = cv2.CascadeClassifier(r'haarcascade_frontalface_alt.xml')
 
         # For each person, enter one numeric face id
         #face_id = input('\n enter user id end press  ==>  ')
@@ -78,8 +78,7 @@ def Scan ():
         f.write(countprog)
         f.close()
         recognizer = cv2.face.LBPHFaceRecognizer_create()
-        detector = cv2.CascadeClassifier(
-            r"C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_default.xml")
+        detector = cv2.CascadeClassifier(r"haarcascade_frontalface_default.xml")
 
         # function to get the images and label data
         def getImagesAndLabels(path):
@@ -107,166 +106,172 @@ def Scan ():
         # Print the numer of faces trained and end program
         ui.lineEdit.setText("[INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
 
-# def Update():
-#     global destination_phone_number
-#     emptystr = ""
-#     f = open("number.txt", "r")
-#     if os.stat("number.txt").st_size != 0:
-#         destination_phone_number = f.read()
-#         ui.lineEdit_3.setEnabled(False)
-#         if destination_phone_number != emptystr:
-#             ui.pushButton.setEnabled(True)
-#
-#     else:
-#         f = open("number.txt", "w")
-#         destination_phone_number = ui.lineEdit_3.text()
-#         ui.lineEdit.setText("Write your phone number please")
-#         ui.pushButton.setEnabled(False)
-#         f.write(destination_phone_number)
-#         ui.lineEdit_3.setEnabled(True)
-#     f.close()
-    #print(destination_phone_number)
-
 def Start ():
-    destination_phone_number = ""
-    emptystr = ""
+    # destination_phone_number = ""
+    #emptystr = ""
+    empstr = ""
+
+    reg = "^((\+380)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$"
     f = open("number.txt", "r")
     if os.stat("number.txt").st_size != 0:
         destination_phone_number = f.read()
+        f.close()
+        othernumber = ui.lineEdit_3.text()
+        ui.lineEdit_3.setText("")
+        if othernumber != destination_phone_number and othernumber != empstr:
+            if re.match(reg, othernumber) is not None:
+                destination_phone_number = othernumber
+                f = open("number.txt", "w")
+                f.write(othernumber)
+                f.close()
+
+            else:
+                ui.lineEdit.setText("Uncorrect phone number")
+                ui.lineEdit_3.setText("")
+                return
     else:
         f = open("number.txt", "w")
-        destination_phone_number = ui.lineEdit_3.text()
         ui.lineEdit.setText("Write your phone number please")
-        f.write(destination_phone_number)
+        destination_phone_number = ui.lineEdit_3.text()
+        ui.lineEdit_3.setText("")
+        if re.match(reg, destination_phone_number) is not None:
+            f.write(destination_phone_number)
+            #f.close()
+        else:
+            ui.lineEdit.setText("Uncorrect phone number or file is empty")
+            ui.lineEdit_3.setText("")
+            return
     f.close()
     if os.stat("number.txt").st_size != 0:
-        try:
-            ui.lineEdit.setText("Program starts working")
-            recognizer = cv2.face.LBPHFaceRecognizer_create()
-            recognizer.read('trainer/trainer.yml')
-            cascadePath = r"C:\Users\1\git\opencv\data\haarcascades_cuda\haarcascade_frontalface_default.xml"
-            faceCascade = cv2.CascadeClassifier(cascadePath)
-            # Twilio config
+            try:
+                ui.lineEdit.setText("Program starts working")
+                recognizer = cv2.face.LBPHFaceRecognizer_create()
+                recognizer.read('trainer/trainer.yml')
+                cascadePath = r"haarcascade_frontalface_default.xml"
+                faceCascade = cv2.CascadeClassifier(cascadePath)
+                # Twilio config
 
-            sms_sent = False
-            twilio_account_sid = 'ACdd6914d657da2353b514f0b1fe0d7757'
-            twilio_auth_token = '48d10574c18f64bc1cb07fe29615b890'
-            twilio_phone_number = '+18043966595'
-            # destination_phone_number = '+380994002620'
+                sms_sent = False
+                twilio_account_sid = 'ACdd6914d657da2353b514f0b1fe0d7757'
+                twilio_auth_token = '48d10574c18f64bc1cb07fe29615b890'
+                twilio_phone_number = '+18043966595'
+                # destination_phone_number = '+380994002620'
 
-            client = Client(twilio_account_sid, twilio_auth_token)
+                client = Client(twilio_account_sid, twilio_auth_token)
 
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            counter = 0
-            identification_count = 0
-            # iniciate id counter
-            id = 0
-            empstr = ""
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                counter = 0
+                identification_count = 0
+                # iniciate id counter
+                id = 0
 
-            # names related to ids: example ==> Marcelo: id=1,  etc
-            names = ['None']
-            f = open("name.txt", "r")
-            if os.stat("name.txt").st_size != 0:
-                name = f.read()
-                f.close()
-                othername = ui.lineEdit_2.text()
-                print(" this -->", othername)
-                if othername != name and othername != empstr:
-                    f = open("name.txt", "w")
-                    f.write("")
-                    f.write(othername)
-                    names.append(othername)
-                else:
-                    ui.lineEdit.setText("Write your name please")
-                    names.append(name)
-                # ui.lineEdit_2.setEnabled(False)
 
-                f.close()
-            else:
-                f = open("name.txt", "w")
-                name = ui.lineEdit_2.text()
-                f.write(name)
-                # ui.lineEdit_2.setEnabled(True)
-                names.append(name)
-            f.close()
-            print(name)
-            print("Мы тут 1")
-
-            # Initialize and start realtime video capture
-            cam = cv2.VideoCapture(0)
-            cam.set(3, 800)  # set video width
-            cam.set(4, 800)  # set video height
-
-            # Define min window size to be recognized as a face
-            minW = 0.1 * cam.get(3)
-            minH = 0.1 * cam.get(4)
-            # destination_phone_number = Update(destination_phone_number)
-            # print(destination_phone_number)
-            while True:
-
-                ret, img = cam.read()
-                # img = cv2.flip(img, -1)  # Flip vertically
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-                faces = faceCascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.2,
-                    minNeighbors=5,
-                    minSize=(int(minW), int(minH)),
-                )
-
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
-
-                    # Check if confidence is less them 100 ==> "0" is perfect match
-                    if (confidence <= 50 and confidence > 20):  #
-                        id = names[id]
-                        confidence = "  {0}%".format(round(100 - confidence))
-                        print(confidence)
-                        identification_count += 1
+                # names related to ids: example ==> Marcelo: id=1,  etc
+                names = ['None']
+                # Add name to file
+                f = open("name.txt", "r")
+                if os.stat("name.txt").st_size != 0:
+                    name = f.read()
+                    f.close()
+                    othername = ui.lineEdit_2.text()
+                    print(" this -->", othername)
+                    if othername != name and othername != empstr:
+                        f = open("name.txt", "w")
+                        f.write("")
+                        f.write(othername)
+                        names.append(othername)
                     else:
-                        id = "unknown"
-                        confidence = "  {0}%".format(round(100 - confidence))
-                        counter += 1
-                        identification_count -= 1
-                        sms_sent = False
-                    if counter > 30 and identification_count < 0:
-                        try:
-                            socket.gethostbyaddr('www.google.com')
-                            if not sms_sent:
-                                print("SENDING SMS!!!")
-                                message = client.messages.create(
-                                    body="Unknown user detected!!! "
-                                         "Your PC will be turn off in 10 seconds",
-                                    from_=twilio_phone_number,
-                                    to=destination_phone_number
-                                )
-                                # time.sleep(10)
+                        names.append(name)
+
+                    # ui.lineEdit_2.setEnabled(False)
+
+                    f.close()
+                else:
+                    f = open("name.txt", "w")
+                    name = ui.lineEdit_2.text()
+                    f.write(name)
+                    # ui.lineEdit_2.setEnabled(True)
+                    names.append(name)
+                    ui.lineEdit.setText("Write your name please")
+                f.close()
+                print(name)
+
+                # Initialize and start realtime video capture
+                cam = cv2.VideoCapture(0)
+                cam.set(3, 800)  # set video width
+                cam.set(4, 800)  # set video height
+
+                # Define min window size to be recognized as a face
+                minW = 0.1 * cam.get(3)
+                minH = 0.1 * cam.get(4)
+                # destination_phone_number = Update(destination_phone_number)
+                # print(destination_phone_number)
+                while True:
+
+                    ret, img = cam.read()
+                    # img = cv2.flip(img, -1)  # Flip vertically
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                    faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.2,
+                        minNeighbors=5,
+                        minSize=(int(minW), int(minH)),
+                    )
+
+                    for (x, y, w, h) in faces:
+                        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
+
+                        # Check if confidence is less them 100 ==> "0" is perfect match
+                        if (confidence <= 65 and confidence > 20):  #
+                            id = names[id]
+                            confidence = "  {0}%".format(round(100 - confidence))
+                            print(confidence)
+                            identification_count += 1
+                        else:
+                            id = "unknown"
+                            confidence = "  {0}%".format(round(100 - confidence))
+                            counter += 1
+                            identification_count -= 1
+                            sms_sent = False
+                        if counter > 30 and identification_count < 0:
+                            try:
+                                socket.gethostbyaddr('www.google.com')
+                                if not sms_sent:
+                                    print("SENDING SMS!!! to {0}".format(destination_phone_number))
+                                    message = client.messages.create(
+                                        body="Unknown user detected!!! "
+                                             "Your PC will be turn off in 10 seconds",
+                                        from_=twilio_phone_number,
+                                        to=destination_phone_number
+                                    )
+                                    # time.sleep(10)
+                                    # subprocess.call(["shutdown", "/l"])
+                                    counter = 0
+                                sms_sent = True
+                            except socket.gaierror:
+                                ui.lineEdit.setText("Wifi connection lost")
+                                print("shutdown")
                                 # subprocess.call(["shutdown", "/l"])
-                                counter = 0
-                            sms_sent = True
-                        except socket.gaierror:
-                            ui.lineEdit.setText("Wifi connection lost")
-                            print("shutdown")
-                            # subprocess.call(["shutdown", "/l"])
 
-                    cv2.putText(img, str(id), (x + 5, y - 5), font, 1, (255, 255, 255), 2)
-                    cv2.putText(img, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
-                    print("Мы тут 2")
-                cv2.imshow('camera', img)
-                k = cv2.waitKey(10) & 0xff  # Press 'ESC' for exiting video
-                if k == 27:
-                    break
+                        cv2.putText(img, str(id), (x + 5, y - 5), font, 1, (255, 255, 255), 2)
+                        cv2.putText(img, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
+                    cv2.imshow('camera', img)
+                    k = cv2.waitKey(10) & 0xff  # Press 'ESC' for exiting video
+                    if k == 27:
+                        break
 
-            # Do a bit of cleanup
-            print("\n [INFO] Exiting Program and cleanup stuff")
-            cam.release()
-            cv2.destroyAllWindows()
-        except cv2.error:
-            ui.lineEdit.setText("Files dataset and trainer must be full, not empty")
+                # Do a bit of cleanup
+                print("\n [INFO] Exiting Program and cleanup stuff")
+                cam.release()
+                cv2.destroyAllWindows()
+            except cv2.error:
+                ui.lineEdit.setText("Files dataset and trainer must be full, not empty")
     else:
-        ui.lineEdit.setText("Enter phone number!")
+        pass
+
+
 def Delete ():
     folder = 'dataset'
     for the_file in os.listdir(folder):
@@ -295,9 +300,7 @@ def Delete ():
     f.close()
     ui.lineEdit.setText("Cache was deleted! Scan face, enter number and name!")
 
-
 ui.pushButton_4.clicked.connect(Scan)
-#ui.pushButton_3.clicked.connect(Update)
 ui.pushButton_2.clicked.connect(Delete)
 ui.pushButton.clicked.connect(Start)
 sys.exit(app.exec_())
