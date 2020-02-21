@@ -34,10 +34,6 @@ while(bool):
         stat = 1
         return stat
 
-
-    print("status --." + status)
-
-
     def Check():
         f = open("status.txt", "w")
         global status
@@ -47,9 +43,8 @@ while(bool):
         print(status)
         return status
 
-
     ui.radioButton.toggled.connect(Check)
-    print("--> " + status)
+    #print("---> " + status)
 
     f = open("status.txt", "r")
     status = f.read()
@@ -95,7 +90,7 @@ while(bool):
                 # flip video image vertically
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 #gray = img
-                faces = face_detector.detectMultiScale(gray, 1.3, 5)
+                faces = face_detector.detectMultiScale(gray, 1.2, 5)
 
                 for (x, y, w, h) in faces:
                     cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
@@ -244,8 +239,8 @@ while(bool):
 
                     # Initialize and start realtime video capture
                     cam = cv2.VideoCapture(0)
-                    cam.set(3, 800)  # set video width
-                    cam.set(4, 800)  # set video height
+                    cam.set(3, 640)  # set video width
+                    cam.set(4, 480)  # set video height
 
                     # Define min window size to be recognized as a face
                     minW = 0.1 * cam.get(3)
@@ -270,14 +265,15 @@ while(bool):
                             id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
 
                             # Check if confidence is less them 100 ==> "0" is perfect match
-                            if (confidence <= 55 and confidence > 20):  #
+                            if (confidence <= 55):  #
                                 id = names[id]
-                                confidence = "  {0}%".format(round(100 - confidence))
+                                confidence = "  {0}%".format(round(confidence))
+                                #confidence = confidence
                                 print(confidence)
-                                identification_count += 1
+                                identification_count = 10
                             else:
                                 id = "unknown"
-                                confidence = "  {0}%".format(round(100 - confidence))
+                                confidence = "  {0}%".format(round(confidence))
                                 counter += 1
                                 identification_count -= 1
                                 sms_sent = False
@@ -287,14 +283,15 @@ while(bool):
                                     socket.gethostbyaddr('www.google.com')
                                     if not sms_sent:
                                         print("SENDING SMS!!! to {0}".format(destination_phone_number))
+                                        identification_count = 300
                                         message = client.messages.create(
                                             body="Unknown user detected!!! "
                                                  "Your PC will be turn off in 10 seconds",
                                             from_=twilio_phone_number,
                                             to=destination_phone_number
                                         )
-                                        # time.sleep(10)
-                                        # subprocess.call(["shutdown", "/l"])
+                                        time.sleep(4)
+                                        subprocess.call(["shutdown", "/l"])
                                         counter = 0
                                     sms_sent = True
                                 except socket.gaierror:
@@ -304,7 +301,7 @@ while(bool):
 
                             cv2.putText(img, str(id), (x + 5, y - 5), font, 1, (255, 255, 255), 2)
                             cv2.putText(img, str(confidence), (x + 5, y + h - 5), font, 1, (255, 255, 0), 1)
-                        #cv2.imshow('camera', img)
+                        cv2.imshow('camera', img)
                         k = cv2.waitKey(10) & 0xff  # Press 'ESC' for exiting video
                         if k == 27:
                             break
@@ -466,16 +463,17 @@ while(bool):
                     for (x, y, w, h) in faces:
                         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
+                        #cv2.imshow("gray", gray)
 
                         # Check if confidence is less them 100 ==> "0" is perfect match
-                        if (confidence <= 55 and confidence > 20):  #
+                        if (confidence <= 55):  #
                             id = names[id]
-                            confidence = "  {0}%".format(round(100 - confidence))
+                            confidence = "  {0}%".format(round(confidence))
                             print(confidence)
                             identification_count = 10
                         else:
                             id = "unknown"
-                            confidence = "  {0}%".format(round(100 - confidence))
+                            confidence = "  {0}%".format(round(confidence))
                             counter += 1
                             identification_count -= 1
                             sms_sent = False
@@ -484,14 +482,16 @@ while(bool):
                                 socket.gethostbyaddr('www.google.com')
                                 if not sms_sent:
                                     print("SENDING SMS!!! to {0}".format(destination_phone_number))
+                                    identification_count = 300
                                     message = client.messages.create(
                                         body="Unknown user detected!!! "
                                              "Your PC will be turn off in 10 seconds",
                                         from_=twilio_phone_number,
                                         to=destination_phone_number
+
                                     )
-                                    # time.sleep(10)
-                                    # subprocess.call(["shutdown", "/l"])
+                                    time.sleep(4)
+                                    subprocess.call(["shutdown", "/l"])
                                     counter = 0
                                 sms_sent = True
                             except socket.gaierror:
@@ -522,5 +522,3 @@ while(bool):
                 pass
         else:
             pass
-
-
